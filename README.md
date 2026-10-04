@@ -658,7 +658,7 @@ Claude Desktop, Cursor, Windsurf 같은 **데스크톱 앱**을 쓰고 있다면
 
 #### Claude Desktop
 
-Claude Desktop은 원격 HTTP MCP 서버를 직접 연결하지 못하므로 `mcp-remote` 어댑터를 통해 연결합니다. [Node.js](https://nodejs.org) 18 이상이 필요합니다 (`npx` 사용을 위해).
+Claude Desktop은 원격 HTTP MCP 서버를 직접 연결하지 못하므로 `mcp-remote` 어댑터를 통해 연결합니다. [Node.js](https://nodejs.org) 20.19 이상이 필요합니다 (`npx` 사용을 위해).
 
 ```json
 {
@@ -699,7 +699,7 @@ Claude Desktop은 원격 HTTP MCP 서버를 직접 연결하지 못하므로 `mc
 
 인터넷 없이 쓰고 싶거나, 원격 서버를 거치지 않으려면 직접 설치할 수 있습니다.
 
-**사전 준비:** [Node.js](https://nodejs.org) 18 이상이 설치되어 있어야 합니다.
+**사전 준비:** [Node.js](https://nodejs.org) 20.19 이상이 설치되어 있어야 합니다.
 
 **자동 설치 (추천):**
 

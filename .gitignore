@@ -16,3 +16,4 @@ test-results-*.txt
 .claude/plans/
 promo-video/
 *.tgz
+.korean-law-mcp/

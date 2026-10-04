@@ -1,6 +1,6 @@
 # Korean Law MCP - 개발자 가이드
 
-> **v2.3.2** | 기여자를 위한 개발 가이드
+> **v4.10.0** | 기여자를 위한 개발 가이드
 
 ---
 
@@ -8,7 +8,7 @@
 
 ### 요구사항
 
-- **Node.js**: 18.0.0 이상
+- **Node.js**: 20.19.0 이상
 - **npm**: 9.0.0 이상
 - **TypeScript**: 5.7+ (프로젝트 종속성에 포함)
 
@@ -69,12 +69,11 @@ korean-law-mcp/
 │   │   ├── life-law.ts       # 생활법령
 │   │   └── ... (기타 도구 파일)
 │   └── server/
-│       ├── http-server.ts    # Streamable HTTP (MCP 표준)
-│       └── sse-server.ts     # SSE 서버 (레거시)
+│       └── http-server.ts    # Streamable HTTP (MCP 표준, stateless)
 ├── build/                    # 빌드 결과 (JavaScript)
 ├── docs/                     # 문서
 ├── Dockerfile                # Docker 이미지
-├── fly.toml                  # Fly.io 배포 설정
+├── fly.toml.disabled         # Fly.io 설정 (사용 중지 — gomdori-mcp 통합 호스트가 서빙)
 ├── package.json
 ├── tsconfig.json
 └── CLAUDE.md                 # Claude Code 작업 지침
@@ -187,9 +186,9 @@ npm publish
 
 ### Fly.io
 
-```bash
-flyctl deploy
-```
+이 레포에서 `fly deploy`를 직접 실행하면 안 된다 — 프로덕션은
+[gomdori-mcp](https://github.com/chrisryugj/gomdori-mcp) 통합 호스트가 서빙한다
+(`fly.toml.disabled` 참조). 반영 절차는 [CLAUDE.md](../CLAUDE.md)의 배포 섹션 참조.
 
 ### Docker
 

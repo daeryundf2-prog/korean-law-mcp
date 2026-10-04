@@ -7,7 +7,7 @@
  */
 
 import express from "express"
-import { timingSafeEqual } from "node:crypto"
+import { createHash, timingSafeEqual } from "node:crypto"
 import type { Server } from "@modelcontextprotocol/sdk/server/index.js"
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js"
 import { requestContext } from "../lib/session-state.js"
@@ -16,17 +16,26 @@ import { maskSensitiveUrl } from "../lib/fetch-with-retry.js"
 import { TOOL_COUNTS } from "../tool-registry.js"
 import { VERSION } from "../version.js"
 
-/** 타이밍 공격 내성 문자열 비교 (길이가 달라도 throw하지 않음) */
+/** 타이밍 공격 내성 문자열 비교 — 길이가 달라도 조기 리턴하지 않도록 해시 후 비교 */
 function safeEqual(a: string, b: string): boolean {
-  const bufA = Buffer.from(a)
-  const bufB = Buffer.from(b)
-  if (bufA.length !== bufB.length) return false
-  return timingSafeEqual(bufA, bufB)
+  const hashA = createHash("sha256").update(a).digest()
+  const hashB = createHash("sha256").update(b).digest()
+  return timingSafeEqual(hashA, hashB)
 }
 
 /** `Authorization: Bearer x` → `x` (Bearer 접두사가 없으면 원문) */
 function bearerValue(raw: string | undefined): string {
   return raw ? raw.replace(/^Bearer\s+/i, "") : ""
+}
+
+/**
+ * 정수 환경변수 파싱 — 비숫자 값이면 NaN이 아니라 기본값으로 폴백.
+ * parseInt 직결은 "abc" → NaN → rate limit 무력화(NaN 비교는 항상 false)나
+ * `Retry-After: NaN` 헤더 같은 조용한 장애를 낸다.
+ */
+function envInt(raw: string | undefined, fallback: number): number {
+  const n = parseInt(raw ?? "", 10)
+  return Number.isFinite(n) ? n : fallback
 }
 
 /**
@@ -142,13 +151,13 @@ export async function startHTTPServer(createServer: () => Server, port: number) 
   app.use(express.json({ limit: process.env.MCP_BODY_LIMIT || "100kb" }))
 
   // Rate Limiting (RATE_LIMIT_RPM 환경변수, 기본: 60 req/min per IP)
-  const rateLimitRpm = parseInt(process.env.RATE_LIMIT_RPM || "60", 10)
+  const rateLimitRpm = envInt(process.env.RATE_LIMIT_RPM, 60)
   const rateBuckets = new Map<string, { count: number; resetAt: number }>()
 
   // 단일 POST에 담을 수 있는 tools/call 상한. JSON-RPC 배치는 배열의 요청을
   // 전부 디스패치하므로(SDK 확인), 카운트 없이 두면 한 요청으로 rate limit·폴백
   // 쿼터를 배수만큼 우회할 수 있다. 배치 크기를 제한해 증폭을 원천 차단한다.
-  const maxBatchCalls = parseInt(process.env.MCP_MAX_BATCH_CALLS || "20", 10)
+  const maxBatchCalls = envInt(process.env.MCP_MAX_BATCH_CALLS, 20)
 
   if (rateLimitRpm > 0) {
     app.use((req, res, next) => {
@@ -244,9 +253,9 @@ export async function startHTTPServer(createServer: () => Server, port: number) 
   // 몇 명이 다 쓰면 나머지가 남은 창 내내 429를 맞았다 — 실측으로 무키 요청의
   // 2/3가 즉시 429였다(2026-08-12). 토큰버킷으로 바꿔 같은 평균 처리율에서
   // 버스트를 흡수하고, 총량 보호는 일일 캡으로 따로 건다.
-  const fallbackRpm = parseInt(process.env.FALLBACK_RATE_LIMIT_RPM || "120", 10)
-  const fallbackBurst = parseInt(process.env.FALLBACK_RATE_LIMIT_BURST || String(fallbackRpm), 10)
-  const fallbackDailyLimit = parseInt(process.env.FALLBACK_DAILY_CAP || "0", 10)
+  const fallbackRpm = envInt(process.env.FALLBACK_RATE_LIMIT_RPM, 120)
+  const fallbackBurst = envInt(process.env.FALLBACK_RATE_LIMIT_BURST, fallbackRpm)
+  const fallbackDailyLimit = envInt(process.env.FALLBACK_DAILY_CAP, 0)
   const fallbackMinute = createTokenBucket(fallbackRpm, fallbackBurst)
   const fallbackDay = createDailyCap(fallbackDailyLimit)
   // n = 이 요청이 소모하는 tools/call 개수 (배치는 배열 길이만큼 서버 키를 쓴다)

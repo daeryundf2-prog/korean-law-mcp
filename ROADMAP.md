@@ -1,5 +1,7 @@
 # Korean Law MCP - 개발 로드맵
 
+> ⚠️ **이 문서는 오래되었습니다** — v1.3.0 시점에 작성된 내용이며 현재 버전은 v4.10.0입니다. 최신 변경 이력과 도구 목록은 [CHANGELOG.md](CHANGELOG.md)와 [README.md](README.md)를 참조하세요.
+
 ## ✅ 완료된 기능 (v1.3.0)
 
 ### v1.3.0 신규 기능 (Tools 21-29)

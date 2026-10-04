@@ -56,9 +56,15 @@ export class LawApiClient {
     return t === "JSON" ? "JSON" : "XML"
   }
 
-  /** 응답 본문이 HTML 에러 페이지인지 확인 */
+  /**
+   * 응답 본문이 HTML 에러 페이지인지 확인.
+   * HTML 문서(에러/점검 페이지)는 `<!DOCTYPE`/`<html`로 시작하므로 본문 선두만 본다 —
+   * 본문 중간에 `<html`이 들어간 정상 XML/JSON 응답(조문 텍스트에 HTML 조각 포함 등)을
+   * 오탐하지 않기 위함. fetchWithRetry의 detectBadBody와 동일 휴리스틱.
+   */
   private checkHtmlError(text: string, context: string): void {
-    if (text.includes("<!DOCTYPE html") || text.includes("<html")) {
+    const trimmed = text.trimStart()
+    if (/^<!doctype html/i.test(trimmed) || /^<html[\s>]/i.test(trimmed)) {
       const hint = this.getResponseType() === "XML"
         ? " XML 엔드포인트 장애 시 LAW_RESPONSE_TYPE=JSON 환경변수로 우회할 수 있습니다."
         : ""

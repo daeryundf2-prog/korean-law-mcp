@@ -44,12 +44,17 @@ export function parseAntibotUrl(html: string): string | null {
 
 /**
  * ToS 동의 게이트 — law.go.kr JS 챌린지 우회는 제공처 약관의 회색 지대라
- * 명시적 opt-in(LAW_TOS_ACK=1) 없이는 우회를 쓰지 않는다. 동의 시 감사 로그
- * (.lazyforensic/antibot_consent.log)에 시각과 약관 버전을 기록하고 우회를 허용한다.
+ * 명시적 opt-in(LAW_TOS_ACK=1) 없이는 우회를 쓰지 않는다. 실제 우회가 일어날 때
+ * 감사 로그(.korean-law-mcp/antibot_consent.log)에 시각과 약관 버전을
+ * 프로세스당 1회 기록한다.
  */
+let consentLogged = false
+
 function logAntibotConsent(): void {
+  if (consentLogged) return
+  consentLogged = true
   try {
-    const dir = resolve(process.cwd(), ".lazyforensic")
+    const dir = resolve(process.cwd(), ".korean-law-mcp")
     mkdirSync(dir, { recursive: true })
     const logPath = join(dir, "antibot_consent.log")
     const entry = `[${new Date().toISOString()}] LAW_TOS_ACK=1 consent active (terms version: 2026.09, bypass: enabled)\n`
@@ -60,11 +65,7 @@ function logAntibotConsent(): void {
 }
 
 function hasAntibotConsent(): boolean {
-  if (process.env.LAW_TOS_ACK === "1") {
-    logAntibotConsent()
-    return true
-  }
-  return false
+  return process.env.LAW_TOS_ACK === "1"
 }
 
 /** timeout이 걸린 단발 fetch */
@@ -126,6 +127,8 @@ export async function followLawAntibot(
 
     const next = await fetchOnce(nextUrl, headers, timeout)
     hopped = true
+    // 실제 우회가 일어난 경우에만 감사 로그 기록 (정상 응답마다 쓰지 않음)
+    logAntibotConsent()
 
     // 토큰 URL이 404면 원본을 한 번 더 시도 (홉이 세션을 세팅했을 수 있음)
     if (next.status === 404) {

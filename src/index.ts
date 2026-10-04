@@ -40,7 +40,11 @@ async function main() {
   const modeIndex = args.indexOf("--mode")
   const mode = modeIndex !== -1 ? args[modeIndex + 1] : "stdio"
   const portIndex = args.indexOf("--port")
-  const port = portIndex !== -1 ? parseInt(args[portIndex + 1], 10) : 8000
+  // --port 플래그 > PORT 환경변수(Dockerfile이 ENV PORT=3000 설정) > 기본 8000
+  const envPort = parseInt(process.env.PORT ?? "", 10)
+  const port = portIndex !== -1
+    ? parseInt(args[portIndex + 1], 10)
+    : Number.isFinite(envPort) ? envPort : 8000
 
   if (mode === "http" || mode === "sse") {
     await startHTTPServer(createServer, port)
